@@ -1,0 +1,149 @@
+:root {
+  /* Gridgeist Utilitarian System */
+  
+  /* Color Palette */
+  --bg-app: #020617; /* Very dark slate, almost black */
+  --bg-surface: #0f172a; /* Slate 900 for cards/panels */
+  --bg-surface-hover: #1e293b; /* Slate 800 */
+  --border-subtle: #334155; /* Slate 700 */
+  --border-strong: #475569; /* Slate 600 */
+  --text-primary: #f8fafc; /* Slate 50 */
+  --text-secondary: #94a3b8; /* Slate 400 */
+  --accent-primary: #3b82f6; /* Blue 500 */
+  --accent-hover: #2563eb; /* Blue 600 */
+  --danger: #ef4444; /* Red 500 */
+
+  /* Typography */
+  --font-ui: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-editor: 'Merriweather', 'Georgia', serif;
+
+  /* Grid & Spacing Rhythm (Base-4/8) */
+  --space-1: 0.25rem;  /* 4px */
+  --space-2: 0.5rem;   /* 8px */
+  --space-3: 0.75rem;  /* 12px */
+  --space-4: 1rem;     /* 16px */
+  --space-6: 1.5rem;   /* 24px */
+  --space-8: 2rem;     /* 32px */
+  --space-12: 3rem;    /* 48px */
+  --space-16: 4rem;    /* 64px */
+
+  /* Borders & Radii */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-ui);
+  background-color: var(--bg-app);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Editor Specifics */
+.ProseMirror {
+  outline: none;
+  font-family: var(--font-editor);
+  font-size: 1.125rem;
+  line-height: 1.7;
+  color: var(--text-primary);
+  max-width: 65ch;
+  margin: 0 auto;
+}
+
+.ProseMirror p {
+  margin-top: 0;
+  margin-bottom: var(--space-6);
+}
+
+.ProseMirror h1, .ProseMirror h2, .ProseMirror h3 {
+  font-family: var(--font-ui);
+  font-weight: 600;
+  margin-top: var(--space-8);
+  margin-bottom: var(--space-4);
+  color: var(--text-primary);
+}
+
+.ProseMirror ul, .ProseMirror ol {
+  margin-bottom: var(--space-6);
+}
+
+/* Collaboration Cursors */
+.collaboration-cursor__caret {
+  position: relative;
+  margin-left: -1px;
+  margin-right: -1px;
+  border-left: 2px solid #000;
+  border-right: 2px solid #000;
+  word-break: normal;
+  pointer-events: none;
+}
+
+.collaboration-cursor__label {
+  position: absolute;
+  top: -1.4em;
+  left: -1px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: normal;
+  user-select: none;
+  color: #fff;
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px 3px 3px 0;
+  white-space: nowrap;
+}
+/* Responsive Overrides */
+@media (max-width: 768px) {
+  .ProseMirror {
+    font-size: 1rem;
+  }
+  
+  /* Hide List Header on mobile */
+  .dashboard-list-header {
+    display: none !important;
+  }
+  
+  /* Stack list items on mobile */
+  .dashboard-list-grid {
+    grid-template-columns: 1fr !important;
+    gap: var(--space-2);
+    position: relative;
+  }
+  
+  .dashboard-list-item {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    padding: var(--space-4) !important;
+  }
+  
+  .date-column {
+    display: block !important;
+    margin-top: var(--space-1);
+    font-size: 0.75rem !important;
+  }
+  
+  .action-column {
+    position: absolute;
+    right: var(--space-4);
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  /* Editor Toolbar Horizontal Scroll */
+  .editor-toolbar-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+  }
+  .editor-toolbar-container::-webkit-scrollbar {
+    display: none; /* Safari and Chrome */
+  }
+  .editor-toolbar {
+    min-width: max-content;
+  }
+}

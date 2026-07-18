@@ -1,0 +1,68 @@
+{
+  "recommendations": [
+    // Git & collaboration
+    "eamodio.gitlens",
+    "mhutchie.git-graph",
+
+    // Formatting & linting
+    "esbenp.prettier-vscode",
+    "oxc.oxc-vscode",
+    "usernamehw.errorlens",
+    "aaron-bond.better-comments",
+    "streetsidesoftware.code-spell-checker",
+
+    // React / TypeScript / JS
+    "dsznajder.es7-react-js-snippets",
+    "xabikos.javascriptsnippets",
+    "yoavbls.pretty-ts-errors",
+
+    // HTML / CSS
+    "formulahendry.auto-close-tag",
+    "formulahendry.auto-rename-tag",
+    "zignd.html-css-class-completion",
+    "oderwat.indent-rainbow",
+    "bradlc.vscode-tailwindcss",
+    "styled-components.vscode-styled-components",
+
+    // Node / npm
+    "christian-kohler.npm-intellisense",
+    "christian-kohler.path-intellisense",
+    "formulahendry.code-runner",
+
+    // API testing
+    "rangav.vscode-thunder-client",
+    "postman.postman-for-vscode",
+
+    // Env & config
+    "irongeek.vscode-env",
+
+    // Icons & themes
+    "pkief.material-icon-theme",
+    "vscode-icons-team.vscode-icons",
+    "github.github-vscode-theme",
+
+    // Misc utilities
+    "hediet.vscode-drawio",
+    "bierner.markdown-mermaid",
+    "dheovani.svg-viewer",
+    "tomoki1207.pdf",
+    "qwtel.sqlite-viewer"
+  ],
+  "unwantedRecommendations": [
+    // Languages not used in this project
+    "golang.go",
+    "redhat.java",
+    "vscjava.vscode-java-pack",
+    "vscjava.vscode-java-debug",
+    "vscjava.vscode-java-dependency",
+    "vscjava.vscode-java-test",
+    "vscjava.vscode-gradle",
+    "vscjava.vscode-maven",
+    "ms-python.python",
+    "ms-python.debugpy",
+    "ms-python.vscode-python-envs",
+    "tal7aouy.php",
+    "zobo.php-intellisense",
+    "d-biehl.robotcode"
+  ]
+}
