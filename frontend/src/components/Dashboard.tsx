@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { FileText, Plus, Clock, Trash2, LogOut, AlertTriangle } from 'lucide-react';
+import { FileText, Plus, Clock, Trash2, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { auth } from '../firebase';
 
@@ -17,7 +17,7 @@ export const Dashboard = () => {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [docToDelete, setDocToDelete] = useState<string | null>(null);
-  const { currentUser, logout } = useAuth();
+  const { currentUser } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
