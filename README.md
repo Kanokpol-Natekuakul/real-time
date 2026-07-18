@@ -68,22 +68,20 @@ npm run dev
 
 ## ☁️ Deployment Guide
 
-This project is structured to be easily deployed to modern serverless platforms.
+This project is configured to be easily deployed to modern serverless platforms.
 
 ### Frontend ➡️ Firebase Hosting
-1. Install Firebase CLI: `npm install -g firebase-tools`
-2. Login: `firebase login`
-3. Initialize hosting in the `frontend` directory: `firebase init hosting` (Choose your project, set public directory to `dist`).
-4. Build the project: `npm run build`
-5. Deploy: `firebase deploy --only hosting`
+1. Update `.env` with your backend URL (`VITE_API_URL` and `VITE_WS_URL`).
+2. Build the project: `npm run build`
+3. Deploy: `firebase deploy`
 
-### Backend ➡️ Google Cloud Run
-Since the backend uses WebSockets, Cloud Run is an excellent choice as it natively supports WebSocket traffic.
-1. Create a `Dockerfile` in the `backend` directory.
-2. Ensure your backend reads the `PORT` environment variable (already configured).
-3. Use Google Cloud CLI to submit the build:
-   `gcloud run deploy realtime-backend --source . --port 3001 --allow-unauthenticated`
-4. Update the `ws://localhost:3001` URLs in your frontend code to point to your new Cloud Run URL (`wss://your-cloud-run-url.run.app`).
+### Backend ➡️ Render.com
+1. Connect your GitHub repository to [Render.com](https://render.com).
+2. Create a new **Web Service**.
+3. Set the Root Directory to `backend`.
+4. Set Build Command to `npm install && npm run build` and Start Command to `npm start`.
+5. Add your `FIREBASE_SERVICE_ACCOUNT` json string as an environment variable.
+6. Deploy!
 
 ---
 
@@ -91,6 +89,5 @@ Since the backend uses WebSockets, Cloud Run is an excellent choice as it native
 
 If you plan to scale this application for thousands of concurrent users, consider implementing the following:
 
-1. **Horizontal Scaling with Redis**: Currently, WebSockets are handled in-memory by a single Node.js instance. To run multiple backend instances on Cloud Run, integrate a Redis adapter (e.g., `y-redis`) to sync document states across multiple servers.
-2. **Offline Support**: Integrate `y-indexeddb` on the frontend. This will cache edits locally if the user loses internet connection, and automatically sync them to the server when the connection is restored.
-3. **Finer Access Control**: Update the sharing mechanism from "Public Links" to "Invite via Email", allowing the backend to strictly verify `ownerId` and `collaboratorIds` before granting WebSocket access.
+1. **Horizontal Scaling with Redis**: Currently, WebSockets are handled in-memory by a single Node.js instance. To run multiple backend instances, integrate a Redis adapter (e.g., `y-redis`) to sync document states across multiple servers.
+2. **Finer Access Control**: Update the sharing mechanism from "Public Links" to "Invite via Email", allowing the backend to strictly verify `ownerId` and `collaboratorIds` before granting WebSocket access.
