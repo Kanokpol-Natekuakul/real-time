@@ -31,9 +31,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await signInWithPopup(auth, googleProvider);
       toast.success('Logged in successfully!');
-    } catch (error) {
+    } catch (error: any) {
       console.error("Login failed", error);
-      toast.error('Failed to log in');
+      toast.error(`Failed to log in: ${error.message || 'Unknown error'}`);
     }
   };
 

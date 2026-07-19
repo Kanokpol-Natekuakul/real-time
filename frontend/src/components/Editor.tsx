@@ -321,7 +321,6 @@ export const Editor = () => {
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        // @ts-ignore
         history: false,
       }),
       Collaboration.configure({ document: ydoc }),
