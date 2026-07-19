@@ -1,5 +1,26 @@
 // backend/tests/index.test.ts
 import request from 'supertest';
+
+// Mock firebase-admin to avoid loading ESM dependencies (jose) in Jest CJS environment
+jest.mock('firebase-admin/app', () => ({
+  initializeApp: jest.fn(),
+  cert: jest.fn(),
+  getApps: jest.fn(() => []),
+  getApp: jest.fn(),
+}));
+
+jest.mock('firebase-admin/auth', () => ({
+  getAuth: jest.fn(() => ({
+    verifyIdToken: jest.fn(),
+  })),
+}));
+
+jest.mock('firebase-admin/firestore', () => ({
+  getFirestore: jest.fn(() => ({
+    collection: jest.fn(),
+  })),
+}));
+
 import { app } from '../src/index';
 
 describe('Server', () => {
