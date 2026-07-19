@@ -48,6 +48,15 @@ describe('GET /api/documents', () => {
             versions: [{ timestamp: '2026-07-18T12:00:00.000Z', data: '<p>big html</p>' }],
           }),
         },
+        {
+          // orphan left by a direct websocket connection: content only,
+          // no title or owner — must not appear in the list
+          id: 'orphan-1',
+          data: () => ({
+            content: 'bm90LXZhbGlkLXlqcw==',
+            updatedAt: firestoreTimestamp,
+          }),
+        },
       ],
     };
     (db.collection as jest.Mock).mockReturnValue({

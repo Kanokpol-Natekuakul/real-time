@@ -13,10 +13,12 @@ const saveDoc = async (docName: string, ydoc: Y.Doc) => {
   // crash the process and close every client connection
   try {
     const base64Update = Buffer.from(Y.encodeStateAsUpdate(ydoc)).toString('base64');
-    await db.collection('documents').doc(docName).set({
+    // update() (not set/merge) so a stray websocket connection to a
+    // nonexistent document id cannot create an ownerless orphan document
+    await db.collection('documents').doc(docName).update({
       content: base64Update,
       updatedAt: new Date()
-    }, { merge: true });
+    });
   } catch (error) {
     console.error(`Failed to save document ${docName}:`, error);
   }

@@ -103,7 +103,12 @@ app.get('/api/documents', requireAuth, async (req: AuthRequest, res) => {
         .get();
     }
       
-    const docs = snapshot.docs.map((doc: any) => {
+    const docs = snapshot.docs.filter((doc: any) => {
+      // direct websocket connections can leave content-only documents with no
+      // title or owner; they are not real user documents, so keep them out
+      const data = doc.data();
+      return data.ownerId && data.title;
+    }).map((doc: any) => {
       // content (full Yjs state) and versions (every HTML snapshot) are far too
       // heavy for a list response — keep them out of the payload
       const { content, versions, updatedAt, ...docData } = doc.data();

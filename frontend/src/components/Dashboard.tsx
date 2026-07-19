@@ -84,8 +84,8 @@ export const Dashboard = () => {
     }
   };
 
-  const filteredDocs = documents.filter(doc => 
-    doc.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+  const filteredDocs = documents.filter(doc =>
+    (doc.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
     (doc.contentPreview && doc.contentPreview.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
@@ -192,7 +192,7 @@ export const Dashboard = () => {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', minWidth: 0 }}>
                   <FileText size={16} color="var(--text-secondary)" style={{ flexShrink: 0 }} />
                   <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
-                    <span style={{ fontWeight: 500, fontSize: '0.875rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{doc.title}</span>
+                    <span style={{ fontWeight: 500, fontSize: '0.875rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{doc.title || 'Untitled Document'}</span>
                     {doc.contentPreview && (
                       <div className="document-preview">{doc.contentPreview}</div>
                     )}
