@@ -5,6 +5,8 @@ import { db } from './firebaseAdmin';
 import http from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
+import rateLimit from 'express-rate-limit';
+import * as Y from 'yjs';
 import { WebSocketServer } from 'ws';
 // @ts-ignore
 import { setupWSConnection } from 'y-websocket/bin/utils';
@@ -16,6 +18,27 @@ export const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Rate Limiting
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: 'Too many requests from this IP, please try again later.'
+});
+
+const createDocLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: 'Too many documents created from this IP, please try again later.'
+});
+
+const saveVersionLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: 'Too many versions saved from this IP, please try again later.'
+});
+
+app.use('/api', globalLimiter);
+
 // Initialize Yjs persistence with Firestore
 setupYjsPersistence();
 
@@ -23,6 +46,16 @@ const server = http.createServer(app);
 
 // Keep Socket.io for presence/other features if needed
 export const io = new Server(server, { cors: { origin: '*' } });
+
+io.on('connection', (socket) => {
+  socket.on('join-document', ({ documentId }) => {
+    socket.join(`doc:${documentId}`);
+  });
+  
+  socket.on('leave-document', ({ documentId }) => {
+    socket.leave(`doc:${documentId}`);
+  });
+});
 
 // Add standard WebSocket server for y-websocket on the same server
 const wss = new WebSocketServer({ server });
@@ -36,15 +69,36 @@ app.get('/health', (req, res) => res.json({ status: 'ok' }));
 app.get('/api/documents', requireAuth, async (req: AuthRequest, res) => {
   try {
     const ownerId = req.user?.uid;
-    const snapshot = await db.collection('documents')
-      .where('ownerId', '==', ownerId)
-      // Note: Firestore requires an index for ordering with where(), or we can just sort in memory for simplicity
-      .get();
+    let snapshot;
+    
+    if (req.query.shared === 'true') {
+      snapshot = await db.collection('documents').get();
+    } else {
+      snapshot = await db.collection('documents')
+        .where('ownerId', '==', ownerId)
+        .get();
+    }
       
-    const docs = snapshot.docs.map((doc: any) => ({
-      _id: doc.id,
-      ...doc.data()
-    })).sort((a: any, b: any) => (b.updatedAt?.toMillis() || 0) - (a.updatedAt?.toMillis() || 0));
+    const docs = snapshot.docs.map((doc: any) => {
+      const docData = doc.data();
+      let contentPreview = '';
+      if (docData.content) {
+        try {
+          const ydoc = new Y.Doc();
+          Y.applyUpdate(ydoc, Buffer.from(docData.content, 'base64'));
+          const xml = ydoc.getXmlFragment('default');
+          const html = xml.toString();
+          contentPreview = html.replace(/<[^>]*>?/gm, '').substring(0, 200);
+        } catch (e) {
+          contentPreview = '';
+        }
+      }
+      return {
+        _id: doc.id,
+        ...docData,
+        contentPreview
+      };
+    }).sort((a: any, b: any) => (b.updatedAt?.toMillis() || 0) - (a.updatedAt?.toMillis() || 0));
     
     res.json(docs);
   } catch (error) {
@@ -54,7 +108,7 @@ app.get('/api/documents', requireAuth, async (req: AuthRequest, res) => {
 });
 
 // Create a new document
-app.post('/api/documents', requireAuth, async (req: AuthRequest, res) => {
+app.post('/api/documents', requireAuth, createDocLimiter, async (req: AuthRequest, res) => {
   try {
     const ownerId = req.user?.uid;
     const newDocRef = db.collection('documents').doc();
@@ -118,7 +172,7 @@ app.delete('/api/documents/:id', requireAuth, async (req: AuthRequest, res) => {
 });
 
 // Save a document version
-app.post('/api/documents/:id/versions', requireAuth, async (req: AuthRequest, res) => {
+app.post('/api/documents/:id/versions', requireAuth, saveVersionLimiter, async (req: AuthRequest, res) => {
   try {
     const { html } = req.body;
     const docRef = db.collection('documents').doc(req.params.id);
@@ -149,6 +203,54 @@ app.get('/api/documents/:id/versions', requireAuth, async (req: AuthRequest, res
     res.json(data?.versions || []);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch versions' });
+  }
+});
+
+// GET /api/documents/:id/comments
+app.get('/api/documents/:id/comments', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const snapshot = await db.collection('documents').doc(req.params.id).collection('comments').orderBy('createdAt', 'asc').get();
+    const comments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    res.json(comments);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch comments' });
+  }
+});
+
+// POST /api/documents/:id/comments
+app.post('/api/documents/:id/comments', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const { text } = req.body;
+    const { uid, name, picture } = req.user as any;
+    const newComment = {
+      text,
+      userId: uid,
+      userName: name || 'Anonymous',
+      userPhoto: picture || '',
+      createdAt: new Date().toISOString()
+    };
+    const docRef = await db.collection('documents').doc(req.params.id).collection('comments').add(newComment);
+    const commentData = { id: docRef.id, ...newComment };
+    io.to(`doc:${req.params.id}`).emit('new-comment', commentData);
+    res.json(commentData);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to add comment' });
+  }
+});
+
+// DELETE /api/documents/:id/comments/:commentId
+app.delete('/api/documents/:id/comments/:commentId', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const commentRef = db.collection('documents').doc(req.params.id).collection('comments').doc(req.params.commentId);
+    const commentSnap = await commentRef.get();
+    if (!commentSnap.exists) return res.status(404).json({ error: 'Not found' });
+    if (commentSnap.data()?.userId !== req.user?.uid) return res.status(403).json({ error: 'Forbidden' });
+    
+    await commentRef.delete();
+    io.to(`doc:${req.params.id}`).emit('delete-comment', req.params.commentId);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete comment' });
   }
 });
 

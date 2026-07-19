@@ -5,13 +5,14 @@ A production-ready, real-time collaborative text editor built with modern web te
 ## ✨ Features
 * **Real-Time Collaboration**: Instant text synchronization across multiple clients using Yjs and WebSockets.
 * **Live Presence**: See who is currently viewing/editing the document with Google profile picture avatars and multi-colored cursors.
-* **Rich Text Formatting**: A glassmorphism toolbar supporting Bold, Italic, Strikethrough, Bullet Lists, and Ordered Lists (powered by Tiptap).
-* **Document Management Dashboard**: A sleek dark-mode hub to view, create, and delete your personal documents.
+* **Rich Text Formatting**: A glassmorphism toolbar supporting Bold, Italic, Strikethrough, Bullet/Ordered Lists, Task Lists, Tables, Text Alignment, Highlighting, and Image Uploads via Firebase Storage.
+* **Document Management Dashboard**: A sleek dark-mode hub to view, create, search (with content preview), and delete your personal documents.
+* **Real-Time Comments**: Contextual sidebar comments to discuss changes with your collaborators in real-time.
 * **Version History (Time Travel)**: Save document snapshots and restore previous versions with ease.
 * **Export Options**: Export documents to PDF or plain TXT format.
 * **Secure Authentication**: Google Sign-In integration via Firebase Authentication.
 * **Public Link Sharing**: One-click shareable links allow anyone with the link to jump in and collaborate.
-* **Persistent Storage**: All keystrokes and document titles are securely backed up in real-time to MongoDB.
+* **Persistent Storage & Security**: All keystrokes and document titles are securely backed up in real-time to Firestore. Rate limiting protects the API from abuse.
 
 ## 🛠️ Tech Stack
 * **Frontend**: React (Vite), TypeScript, Tiptap, Yjs, Firebase Auth, React Router, Lucide Icons.

@@ -3,13 +3,27 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Collaboration from '@tiptap/extension-collaboration';
 import { CollaborationCaret } from '@tiptap/extension-collaboration-caret';
+import Image from '@tiptap/extension-image';
+import { Link } from '@tiptap/extension-link';
+import { Table } from '@tiptap/extension-table';
+import { TableRow } from '@tiptap/extension-table-row';
+import { TableCell } from '@tiptap/extension-table-cell';
+import { TableHeader } from '@tiptap/extension-table-header';
+import { TaskList } from '@tiptap/extension-task-list';
+import { TaskItem } from '@tiptap/extension-task-item';
+import { Underline } from '@tiptap/extension-underline';
+import { TextAlign } from '@tiptap/extension-text-align';
+import { Highlight } from '@tiptap/extension-highlight';
+import { Placeholder } from '@tiptap/extension-placeholder';
 import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Bold, Italic, Strikethrough, List, ListOrdered, Share2, History, Download, X, Save } from 'lucide-react';
+import { ArrowLeft, Bold, Italic, Strikethrough, List, ListOrdered, Share2, History, Download, X, Save, MessageSquare, Image as ImageIcon, Link as LinkIcon, Table as TableIcon, CheckSquare, Underline as UnderlineIcon, AlignLeft, AlignCenter, AlignRight, Highlighter } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { auth } from '../firebase';
+import { auth, storage } from '../firebase';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { io } from 'socket.io-client';
 import toast from 'react-hot-toast';
 import html2pdf from 'html2pdf.js';
 
@@ -18,7 +32,13 @@ const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:3001';
 
 const colors = ['#958DF1', '#F98181', '#FBCE76', '#8AF366', '#8B94F7'];
 
-const MenuBar = ({ editor, onSaveVersion, onShowHistory, onExportPDF, onExportTXT }: any) => {
+const MenuBar = ({ editor, onSaveVersion, onShowHistory, onExportPDF, onExportTXT, onShowComments, showComments }: any) => {
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [imageUrl, setImageUrl] = useState('');
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadMode, setUploadMode] = useState<'url' | 'upload'>('url');
+
   if (!editor) return null;
 
   const btnStyle = (isActive: boolean) => ({
@@ -34,52 +54,125 @@ const MenuBar = ({ editor, onSaveVersion, onShowHistory, onExportPDF, onExportTX
     transition: 'all 0.1s'
   });
 
+  const setLink = () => {
+    const previousUrl = editor.getAttributes('link').href;
+    const url = window.prompt('URL', previousUrl);
+    if (url === null) return;
+    if (url === '') {
+      editor.chain().focus().extendMarkRange('link').unsetLink().run();
+      return;
+    }
+    editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+  }
+
+  const handleImageSubmit = async () => {
+    if (uploadMode === 'url' && imageUrl) {
+      editor.chain().focus().setImage({ src: imageUrl }).run();
+      setShowImageModal(false);
+      setImageUrl('');
+    } else if (uploadMode === 'upload' && imageFile) {
+      setUploading(true);
+      try {
+        const storageRef = ref(storage, `images/${Date.now()}_${imageFile.name}`);
+        const uploadTask = uploadBytesResumable(storageRef, imageFile);
+        
+        uploadTask.on('state_changed', 
+          null, 
+          (error) => {
+            console.error(error);
+            toast.error('Upload failed');
+            setUploading(false);
+          }, 
+          async () => {
+            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+            editor.chain().focus().setImage({ src: downloadURL }).run();
+            setShowImageModal(false);
+            setImageFile(null);
+            setUploading(false);
+          }
+        );
+      } catch (e) {
+        toast.error('Upload failed');
+        setUploading(false);
+      }
+    }
+  };
+
   return (
     <div className="editor-toolbar-container" style={{ 
       display: 'flex', padding: 'var(--space-2)', 
       background: 'var(--bg-surface)', borderBottom: '1px solid var(--border-subtle)',
       position: 'sticky', top: 0, zIndex: 10
     }}>
-      <div className="editor-toolbar" style={{ display: 'flex', gap: 'var(--space-1)', margin: '0 auto', width: '100%', maxWidth: '65ch' }}>
-        <button 
-          onClick={() => editor.chain().focus().toggleBold().run()} 
-          style={btnStyle(editor.isActive('bold'))}
-          onMouseOver={e => e.currentTarget.style.color = 'var(--text-primary)'}
-          onMouseOut={e => e.currentTarget.style.color = editor.isActive('bold') ? 'var(--text-primary)' : 'var(--text-secondary)'}
-        ><Bold size={16} /></button>
-        <button 
-          onClick={() => editor.chain().focus().toggleItalic().run()} 
-          style={btnStyle(editor.isActive('italic'))}
-          onMouseOver={e => e.currentTarget.style.color = 'var(--text-primary)'}
-          onMouseOut={e => e.currentTarget.style.color = editor.isActive('italic') ? 'var(--text-primary)' : 'var(--text-secondary)'}
-        ><Italic size={16} /></button>
-        <button 
-          onClick={() => editor.chain().focus().toggleStrike().run()} 
-          style={btnStyle(editor.isActive('strike'))}
-          onMouseOver={e => e.currentTarget.style.color = 'var(--text-primary)'}
-          onMouseOut={e => e.currentTarget.style.color = editor.isActive('strike') ? 'var(--text-primary)' : 'var(--text-secondary)'}
-        ><Strikethrough size={16} /></button>
-        <div style={{ width: '1px', background: 'var(--border-subtle)', margin: '0 var(--space-2)' }}></div>
-        <button 
-          onClick={() => editor.chain().focus().toggleBulletList().run()} 
-          style={btnStyle(editor.isActive('bulletList'))}
-          onMouseOver={e => e.currentTarget.style.color = 'var(--text-primary)'}
-          onMouseOut={e => e.currentTarget.style.color = editor.isActive('bulletList') ? 'var(--text-primary)' : 'var(--text-secondary)'}
-        ><List size={16} /></button>
-        <button 
-          onClick={() => editor.chain().focus().toggleOrderedList().run()} 
-          style={btnStyle(editor.isActive('orderedList'))}
-          onMouseOver={e => e.currentTarget.style.color = 'var(--text-primary)'}
-          onMouseOut={e => e.currentTarget.style.color = editor.isActive('orderedList') ? 'var(--text-primary)' : 'var(--text-secondary)'}
-        ><ListOrdered size={16} /></button>
+      <div className="editor-toolbar" style={{ display: 'flex', gap: 'var(--space-1)', margin: '0 auto', width: '100%', maxWidth: '85ch', overflowX: 'auto' }}>
+        <button onClick={() => editor.chain().focus().toggleBold().run()} style={btnStyle(editor.isActive('bold'))}><Bold size={16} /></button>
+        <button onClick={() => editor.chain().focus().toggleItalic().run()} style={btnStyle(editor.isActive('italic'))}><Italic size={16} /></button>
+        <button onClick={() => editor.chain().focus().toggleUnderline().run()} style={btnStyle(editor.isActive('underline'))}><UnderlineIcon size={16} /></button>
+        <button onClick={() => editor.chain().focus().toggleStrike().run()} style={btnStyle(editor.isActive('strike'))}><Strikethrough size={16} /></button>
+        <button onClick={() => editor.chain().focus().toggleHighlight().run()} style={btnStyle(editor.isActive('highlight'))}><Highlighter size={16} /></button>
+        
+        <div style={{ width: '1px', background: 'var(--border-subtle)', margin: '0 var(--space-1)' }}></div>
+        
+        <button onClick={() => editor.chain().focus().setTextAlign('left').run()} style={btnStyle(editor.isActive({ textAlign: 'left' }))}><AlignLeft size={16} /></button>
+        <button onClick={() => editor.chain().focus().setTextAlign('center').run()} style={btnStyle(editor.isActive({ textAlign: 'center' }))}><AlignCenter size={16} /></button>
+        <button onClick={() => editor.chain().focus().setTextAlign('right').run()} style={btnStyle(editor.isActive({ textAlign: 'right' }))}><AlignRight size={16} /></button>
+        
+        <div style={{ width: '1px', background: 'var(--border-subtle)', margin: '0 var(--space-1)' }}></div>
+
+        <button onClick={() => editor.chain().focus().toggleBulletList().run()} style={btnStyle(editor.isActive('bulletList'))}><List size={16} /></button>
+        <button onClick={() => editor.chain().focus().toggleOrderedList().run()} style={btnStyle(editor.isActive('orderedList'))}><ListOrdered size={16} /></button>
+        <button onClick={() => editor.chain().focus().toggleTaskList().run()} style={btnStyle(editor.isActive('taskList'))}><CheckSquare size={16} /></button>
+        
+        <div style={{ width: '1px', background: 'var(--border-subtle)', margin: '0 var(--space-1)' }}></div>
+        
+        <button onClick={setLink} style={btnStyle(editor.isActive('link'))}><LinkIcon size={16} /></button>
+        <button onClick={() => setShowImageModal(true)} style={btnStyle(false)}><ImageIcon size={16} /></button>
+        <button onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()} style={btnStyle(editor.isActive('table'))}><TableIcon size={16} /></button>
 
         <div style={{ flex: 1 }}></div>
         <button onClick={onSaveVersion} style={btnStyle(false)} title="Save Version"><Save size={16} /></button>
         <button onClick={onShowHistory} style={btnStyle(false)} title="History"><History size={16} /></button>
+        <button onClick={onShowComments} style={btnStyle(showComments)} title="Comments"><MessageSquare size={16} /></button>
         <div style={{ width: '1px', background: 'var(--border-subtle)', margin: '0 var(--space-2)' }}></div>
         <button onClick={onExportPDF} style={btnStyle(false)} title="Export PDF"><Download size={16} /> <span style={{fontSize:'12px', marginLeft:'4px'}}>PDF</span></button>
         <button onClick={onExportTXT} style={btnStyle(false)} title="Export TXT"><Download size={16} /> <span style={{fontSize:'12px', marginLeft:'4px'}}>TXT</span></button>
       </div>
+
+      {showImageModal && (
+        <div className="modal-overlay" onClick={() => setShowImageModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <h3 style={{ margin: 0, color: 'var(--text-primary)' }}>Insert Image</h3>
+            <div className="modal-tabs">
+              <button className={`modal-tab ${uploadMode === 'url' ? 'active' : ''}`} onClick={() => setUploadMode('url')}>From URL</button>
+              <button className={`modal-tab ${uploadMode === 'upload' ? 'active' : ''}`} onClick={() => setUploadMode('upload')}>Upload File</button>
+            </div>
+            
+            {uploadMode === 'url' ? (
+              <input 
+                type="text" 
+                placeholder="https://example.com/image.png" 
+                value={imageUrl} 
+                onChange={e => setImageUrl(e.target.value)}
+                style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)', background: 'rgba(255,255,255,0.05)', color: 'white' }}
+              />
+            ) : (
+              <input 
+                type="file" 
+                accept="image/*"
+                onChange={e => setImageFile(e.target.files?.[0] || null)}
+                style={{ color: 'var(--text-secondary)' }}
+              />
+            )}
+            
+            <div className="modal-actions">
+              <button className="modal-btn-cancel" onClick={() => setShowImageModal(false)}>Cancel</button>
+              <button className="modal-btn-submit" onClick={handleImageSubmit} disabled={uploading}>
+                {uploading ? 'Uploading...' : 'Insert'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -94,6 +187,13 @@ export const Editor = () => {
   const [title, setTitle] = useState('Loading...');
   const [versions, setVersions] = useState<any[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  
+  // Comments state
+  const [showComments, setShowComments] = useState(false);
+  const [comments, setComments] = useState<any[]>([]);
+  const [newComment, setNewComment] = useState('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
   const titleTimeout = useRef<any>(null);
 
   useEffect(() => {
@@ -137,11 +237,41 @@ export const Editor = () => {
     });
 
     setProvider(wsProvider);
+    
+    // Comments Socket
+    const newSocket = io(API_URL);
+    newSocket.emit('join-document', { documentId: id });
+    
+    newSocket.on('new-comment', (comment) => {
+      setComments(prev => [...prev, comment]);
+    });
+    
+    newSocket.on('delete-comment', (commentId) => {
+      setComments(prev => prev.filter(c => c.id !== commentId));
+    });
+    
+    const fetchComments = async () => {
+      const token = await auth.currentUser?.getIdToken();
+      const res = await fetch(`${API_URL}/api/documents/${id}/comments`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setComments(await res.json());
+      }
+    };
+    fetchComments();
+    
     return () => {
       wsProvider.destroy();
       indexeddbProvider.destroy();
+      newSocket.emit('leave-document', { documentId: id });
+      newSocket.disconnect();
     };
   }, [id, ydoc, currentUser]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [comments]);
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTitle = e.target.value;
@@ -166,6 +296,28 @@ export const Editor = () => {
     toast.success('Public link copied to clipboard!');
   };
 
+  const addComment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newComment.trim() || !id) return;
+    const token = await auth.currentUser?.getIdToken();
+    const res = await fetch(`${API_URL}/api/documents/${id}/comments`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: newComment })
+    });
+    if (res.ok) {
+      setNewComment('');
+    }
+  };
+
+  const deleteComment = async (commentId: string) => {
+    const token = await auth.currentUser?.getIdToken();
+    await fetch(`${API_URL}/api/documents/${id}/comments/${commentId}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+  };
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -173,6 +325,18 @@ export const Editor = () => {
         history: false,
       }),
       Collaboration.configure({ document: ydoc }),
+      Image,
+      Link.configure({ openOnClick: false }),
+      Table.configure({ resizable: true }),
+      TableRow,
+      TableCell,
+      TableHeader,
+      TaskList,
+      TaskItem.configure({ nested: true }),
+      Underline,
+      TextAlign.configure({ types: ['heading', 'paragraph'] }),
+      Highlight,
+      Placeholder.configure({ placeholder: 'Start typing here...' }),
       ...(provider && currentUser ? [
         CollaborationCaret.configure({
           provider,
@@ -340,39 +504,96 @@ export const Editor = () => {
         </div>
       </div>
 
-      {/* Editor Main */}
-      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
-        <MenuBar editor={editor} onSaveVersion={saveVersion} onShowHistory={() => setShowHistory(true)} onExportPDF={exportPDF} onExportTXT={exportTXT} />
-        <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--space-12) var(--space-4)' }}>
-          <EditorContent editor={editor} />
+      {/* Main Content Area */}
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+        
+        {/* Editor Area */}
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+          <MenuBar 
+            editor={editor} 
+            onSaveVersion={saveVersion} 
+            onShowHistory={() => { setShowHistory(true); setShowComments(false); }} 
+            onExportPDF={exportPDF} 
+            onExportTXT={exportTXT}
+            onShowComments={() => { setShowComments(!showComments); setShowHistory(false); }}
+            showComments={showComments}
+          />
+          <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--space-12) var(--space-4)' }}>
+            <EditorContent editor={editor} />
+          </div>
         </div>
-      </div>
 
-      {/* History Sidebar */}
-      {showHistory && (
-        <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: '350px', background: 'var(--bg-surface)', borderLeft: '1px solid var(--border-subtle)', zIndex: 50, display: 'flex', flexDirection: 'column', boxShadow: '-5px 0 25px rgba(0,0,0,0.5)' }}>
-          <div style={{ padding: 'var(--space-4)', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}><History size={20} /> Version History</h3>
-            <button onClick={() => setShowHistory(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}><X size={20} /></button>
-          </div>
-          <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--space-4)' }}>
-            {versions.length === 0 ? (
-              <p style={{ color: 'var(--text-secondary)', textAlign: 'center', marginTop: 'var(--space-8)' }}>No saved versions yet.</p>
-            ) : (
-              [...versions].reverse().map((v, i) => (
-                <div key={i} style={{ padding: 'var(--space-3)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', marginBottom: 'var(--space-3)', background: 'var(--bg-app)' }}>
-                  <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: 'var(--space-2)' }}>
-                    {new Date(v.timestamp).toLocaleString()}
+        {/* Comments Sidebar */}
+        {showComments && (
+          <div className="comments-sidebar">
+            <div className="comments-header">
+              <h3>Comments</h3>
+              <button onClick={() => setShowComments(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}><X size={20} /></button>
+            </div>
+            
+            <div className="comments-list">
+              {comments.length === 0 ? (
+                <div style={{ textAlign: 'center', color: 'var(--text-secondary)', marginTop: '2rem' }}>No comments yet.</div>
+              ) : (
+                comments.map((comment) => (
+                  <div key={comment.id} className="comment-item">
+                    <img src={comment.userPhoto || `https://ui-avatars.com/api/?name=${comment.userName}`} alt="Avatar" className="comment-avatar" />
+                    <div className="comment-content">
+                      <div className="comment-header">
+                        <span className="comment-name">{comment.userName}</span>
+                        <span className="comment-time">{new Date(comment.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                      </div>
+                      <p className="comment-text">{comment.text}</p>
+                    </div>
+                    {comment.userId === currentUser?.uid && (
+                      <button className="comment-delete" onClick={() => deleteComment(comment.id)}>
+                        <X size={14} />
+                      </button>
+                    )}
                   </div>
-                  <button onClick={() => restoreVersion(v.data)} style={{ width: '100%', padding: 'var(--space-2)', background: 'var(--bg-surface-hover)', color: 'var(--text-primary)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', cursor: 'pointer' }}>
-                    Restore
-                  </button>
-                </div>
-              ))
-            )}
+                ))
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+
+            <form onSubmit={addComment} className="comment-input-area">
+              <input 
+                type="text" 
+                placeholder="Add a comment..." 
+                value={newComment}
+                onChange={e => setNewComment(e.target.value)}
+              />
+              <button type="submit" disabled={!newComment.trim()}>Send</button>
+            </form>
           </div>
-        </div>
-      )}
+        )}
+
+        {/* History Sidebar */}
+        {showHistory && (
+          <div style={{ width: '350px', background: 'var(--bg-surface)', borderLeft: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: 'var(--space-4)', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}><History size={20} /> Version History</h3>
+              <button onClick={() => setShowHistory(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}><X size={20} /></button>
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--space-4)' }}>
+              {versions.length === 0 ? (
+                <p style={{ color: 'var(--text-secondary)', textAlign: 'center', marginTop: 'var(--space-8)' }}>No saved versions yet.</p>
+              ) : (
+                [...versions].reverse().map((v, i) => (
+                  <div key={i} style={{ padding: 'var(--space-3)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', marginBottom: 'var(--space-3)', background: 'var(--bg-app)' }}>
+                    <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: 'var(--space-2)' }}>
+                      {new Date(v.timestamp).toLocaleString()}
+                    </div>
+                    <button onClick={() => restoreVersion(v.data)} style={{ width: '100%', padding: 'var(--space-2)', background: 'var(--bg-surface-hover)', color: 'var(--text-primary)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', cursor: 'pointer' }}>
+                      Restore
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

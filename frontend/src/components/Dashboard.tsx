@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { FileText, Plus, Clock, Trash2, AlertTriangle } from 'lucide-react';
+import { FileText, Plus, Clock, Trash2, AlertTriangle, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { auth } from '../firebase';
 
@@ -11,9 +11,11 @@ interface Document {
   _id: string;
   title: string;
   updatedAt: string;
+  contentPreview?: string;
 }
 
 export const Dashboard = () => {
+  const [searchQuery, setSearchQuery] = useState('');
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [docToDelete, setDocToDelete] = useState<string | null>(null);
@@ -24,7 +26,7 @@ export const Dashboard = () => {
     const fetchDocuments = async () => {
       try {
         const token = await auth.currentUser?.getIdToken();
-        const res = await fetch(`${API_URL}/api/documents`, {
+        const res = await fetch(`${API_URL}/api/documents?shared=true`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (res.ok) {
@@ -82,6 +84,11 @@ export const Dashboard = () => {
     }
   };
 
+  const filteredDocs = documents.filter(doc => 
+    doc.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    (doc.contentPreview && doc.contentPreview.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
   return (
     <div style={{ maxWidth: '1024px', margin: '0 auto', padding: 'var(--space-8)' }}>
       {/* Header Grid */}
@@ -116,11 +123,22 @@ export const Dashboard = () => {
           </button>
         </div>
       </div>
+      
+      {/* Search Bar */}
+      <div className="search-bar-container">
+        <Search size={18} color="var(--text-secondary)" />
+        <input 
+          type="text" 
+          placeholder="Search all your documents (including shared)..." 
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+        />
+      </div>
 
       {/* Content Area */}
       {loading ? (
         <div style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Loading documents...</div>
-      ) : documents.length === 0 ? (
+      ) : filteredDocs.length === 0 ? (
         <div style={{ 
           border: '1px solid var(--border-subtle)', 
           borderRadius: 'var(--radius-md)', 
@@ -154,7 +172,7 @@ export const Dashboard = () => {
           
           {/* List Body */}
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {documents.map((doc, index) => (
+            {filteredDocs.map((doc, index) => (
               <div 
                 key={doc._id} 
                 onClick={() => navigate(`/document/${doc._id}`)}
@@ -164,16 +182,21 @@ export const Dashboard = () => {
                   gridTemplateColumns: '1fr 200px 80px',
                   alignItems: 'center',
                   padding: 'var(--space-3) var(--space-4)', 
-                  borderBottom: index < documents.length - 1 ? '1px solid var(--border-subtle)' : 'none',
+                  borderBottom: index < filteredDocs.length - 1 ? '1px solid var(--border-subtle)' : 'none',
                   cursor: 'pointer',
                   transition: 'background 0.2s'
                 }}
                 onMouseOver={e => e.currentTarget.style.background = 'var(--bg-surface-hover)'}
                 onMouseOut={e => e.currentTarget.style.background = 'transparent'}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-                  <FileText size={16} color="var(--text-secondary)" />
-                  <span style={{ fontWeight: 500, fontSize: '0.875rem' }}>{doc.title}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', minWidth: 0 }}>
+                  <FileText size={16} color="var(--text-secondary)" style={{ flexShrink: 0 }} />
+                  <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
+                    <span style={{ fontWeight: 500, fontSize: '0.875rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{doc.title}</span>
+                    {doc.contentPreview && (
+                      <div className="document-preview">{doc.contentPreview}</div>
+                    )}
+                  </div>
                 </div>
                 
                 <div className="date-column" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
