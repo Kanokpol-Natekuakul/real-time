@@ -16,7 +16,7 @@ A production-ready, real-time collaborative text editor built with modern web te
 
 ## 🛠️ Tech Stack
 * **Frontend**: React (Vite), TypeScript, Tiptap, Yjs, Firebase Auth, React Router, Lucide Icons.
-* **Backend**: Node.js, Express, `y-websocket`, Mongoose (MongoDB), Firebase Admin SDK.
+* **Backend**: Node.js, Express, `y-websocket`, Firebase Admin SDK (Firestore for Database).
 
 ## 🚀 Getting Started (Local Development)
 
@@ -41,8 +41,7 @@ Fill in your Firebase Project credentials in the `.env` file.
 cd ../backend
 cp .env.example .env
 ```
-Fill in your MongoDB connection string in the `.env` file. 
-*Note: You also need to download your `serviceAccountKey.json` from the Firebase Console (Project Settings > Service Accounts) and place it in the `backend/` folder.*
+*Note: You need to download your `serviceAccountKey.json` from the Firebase Console (Project Settings > Service Accounts) and place it in the `backend/` folder.*
 
 ### 3. Install Dependencies
 ```bash
@@ -81,7 +80,7 @@ This project is configured to be easily deployed to modern serverless platforms.
 2. Create a new **Web Service**.
 3. Set the Root Directory to `backend`.
 4. Set Build Command to `npm install && npm run build` and Start Command to `npm start`.
-5. Add your `FIREBASE_SERVICE_ACCOUNT` json string as an environment variable.
+5. Add your `FIREBASE_SERVICE_ACCOUNT` json string as an environment variable (Be careful with quotes and newlines to ensure it parses correctly).
 6. Deploy!
 
 ---
