@@ -41,18 +41,7 @@ const MenuBar = ({ editor, onSaveVersion, onShowHistory, onExportPDF, onExportTX
 
   if (!editor) return null;
 
-  const btnStyle = (isActive: boolean) => ({
-    background: isActive ? 'var(--bg-surface-hover)' : 'transparent',
-    color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
-    border: 'none',
-    padding: 'var(--space-2)',
-    borderRadius: 'var(--radius-sm)',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    transition: 'all 0.1s'
-  });
+  const tbClass = (isActive: boolean) => `toolbar-btn${isActive ? ' active' : ''}`;
 
   const setLink = () => {
     const previousUrl = editor.getAttributes('link').href;
@@ -104,38 +93,43 @@ const MenuBar = ({ editor, onSaveVersion, onShowHistory, onExportPDF, onExportTX
       background: 'var(--bg-surface)', borderBottom: '1px solid var(--border-subtle)',
       position: 'sticky', top: 0, zIndex: 10
     }}>
-      <div className="editor-toolbar" style={{ display: 'flex', gap: 'var(--space-1)', margin: '0 auto', width: '100%', maxWidth: '85ch', overflowX: 'auto' }}>
-        <button onClick={() => editor.chain().focus().toggleBold().run()} style={btnStyle(editor.isActive('bold'))}><Bold size={16} /></button>
-        <button onClick={() => editor.chain().focus().toggleItalic().run()} style={btnStyle(editor.isActive('italic'))}><Italic size={16} /></button>
-        <button onClick={() => editor.chain().focus().toggleUnderline().run()} style={btnStyle(editor.isActive('underline'))}><UnderlineIcon size={16} /></button>
-        <button onClick={() => editor.chain().focus().toggleStrike().run()} style={btnStyle(editor.isActive('strike'))}><Strikethrough size={16} /></button>
-        <button onClick={() => editor.chain().focus().toggleHighlight().run()} style={btnStyle(editor.isActive('highlight'))}><Highlighter size={16} /></button>
-        
-        <div style={{ width: '1px', background: 'var(--border-subtle)', margin: '0 var(--space-1)' }}></div>
-        
-        <button onClick={() => editor.chain().focus().setTextAlign('left').run()} style={btnStyle(editor.isActive({ textAlign: 'left' }))}><AlignLeft size={16} /></button>
-        <button onClick={() => editor.chain().focus().setTextAlign('center').run()} style={btnStyle(editor.isActive({ textAlign: 'center' }))}><AlignCenter size={16} /></button>
-        <button onClick={() => editor.chain().focus().setTextAlign('right').run()} style={btnStyle(editor.isActive({ textAlign: 'right' }))}><AlignRight size={16} /></button>
-        
-        <div style={{ width: '1px', background: 'var(--border-subtle)', margin: '0 var(--space-1)' }}></div>
+      <div className="editor-toolbar">
+        <div className="toolbar-group">
+          <button onClick={() => editor.chain().focus().toggleBold().run()} className={tbClass(editor.isActive('bold'))} title="Bold" aria-label="Bold"><Bold size={16} /></button>
+          <button onClick={() => editor.chain().focus().toggleItalic().run()} className={tbClass(editor.isActive('italic'))} title="Italic" aria-label="Italic"><Italic size={16} /></button>
+          <button onClick={() => editor.chain().focus().toggleUnderline().run()} className={tbClass(editor.isActive('underline'))} title="Underline" aria-label="Underline"><UnderlineIcon size={16} /></button>
+          <button onClick={() => editor.chain().focus().toggleStrike().run()} className={tbClass(editor.isActive('strike'))} title="Strikethrough" aria-label="Strikethrough"><Strikethrough size={16} /></button>
+          <button onClick={() => editor.chain().focus().toggleHighlight().run()} className={tbClass(editor.isActive('highlight'))} title="Highlight" aria-label="Highlight"><Highlighter size={16} /></button>
 
-        <button onClick={() => editor.chain().focus().toggleBulletList().run()} style={btnStyle(editor.isActive('bulletList'))}><List size={16} /></button>
-        <button onClick={() => editor.chain().focus().toggleOrderedList().run()} style={btnStyle(editor.isActive('orderedList'))}><ListOrdered size={16} /></button>
-        <button onClick={() => editor.chain().focus().toggleTaskList().run()} style={btnStyle(editor.isActive('taskList'))}><CheckSquare size={16} /></button>
-        
-        <div style={{ width: '1px', background: 'var(--border-subtle)', margin: '0 var(--space-1)' }}></div>
-        
-        <button onClick={setLink} style={btnStyle(editor.isActive('link'))}><LinkIcon size={16} /></button>
-        <button onClick={() => setShowImageModal(true)} style={btnStyle(false)}><ImageIcon size={16} /></button>
-        <button onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()} style={btnStyle(editor.isActive('table'))}><TableIcon size={16} /></button>
+          <div className="toolbar-divider"></div>
 
-        <div style={{ flex: 1 }}></div>
-        <button onClick={onSaveVersion} style={btnStyle(false)} title="Save Version"><Save size={16} /></button>
-        <button onClick={onShowHistory} style={btnStyle(false)} title="History"><History size={16} /></button>
-        <button onClick={onShowComments} style={btnStyle(showComments)} title="Comments"><MessageSquare size={16} /></button>
-        <div style={{ width: '1px', background: 'var(--border-subtle)', margin: '0 var(--space-2)' }}></div>
-        <button onClick={onExportPDF} style={btnStyle(false)} title="Export PDF"><Download size={16} /> <span style={{fontSize:'12px', marginLeft:'4px'}}>PDF</span></button>
-        <button onClick={onExportTXT} style={btnStyle(false)} title="Export TXT"><Download size={16} /> <span style={{fontSize:'12px', marginLeft:'4px'}}>TXT</span></button>
+          <button onClick={() => editor.chain().focus().setTextAlign('left').run()} className={tbClass(editor.isActive({ textAlign: 'left' }))} title="Align left" aria-label="Align left"><AlignLeft size={16} /></button>
+          <button onClick={() => editor.chain().focus().setTextAlign('center').run()} className={tbClass(editor.isActive({ textAlign: 'center' }))} title="Align center" aria-label="Align center"><AlignCenter size={16} /></button>
+          <button onClick={() => editor.chain().focus().setTextAlign('right').run()} className={tbClass(editor.isActive({ textAlign: 'right' }))} title="Align right" aria-label="Align right"><AlignRight size={16} /></button>
+
+          <div className="toolbar-divider"></div>
+
+          <button onClick={() => editor.chain().focus().toggleBulletList().run()} className={tbClass(editor.isActive('bulletList'))} title="Bullet list" aria-label="Bullet list"><List size={16} /></button>
+          <button onClick={() => editor.chain().focus().toggleOrderedList().run()} className={tbClass(editor.isActive('orderedList'))} title="Numbered list" aria-label="Numbered list"><ListOrdered size={16} /></button>
+          <button onClick={() => editor.chain().focus().toggleTaskList().run()} className={tbClass(editor.isActive('taskList'))} title="Task list" aria-label="Task list"><CheckSquare size={16} /></button>
+
+          <div className="toolbar-divider"></div>
+
+          <button onClick={setLink} className={tbClass(editor.isActive('link'))} title="Link" aria-label="Link"><LinkIcon size={16} /></button>
+          <button onClick={() => setShowImageModal(true)} className={tbClass(false)} title="Insert image" aria-label="Insert image"><ImageIcon size={16} /></button>
+          <button onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()} className={tbClass(editor.isActive('table'))} title="Insert table" aria-label="Insert table"><TableIcon size={16} /></button>
+        </div>
+
+        <div className="toolbar-group">
+          <button onClick={onSaveVersion} className={tbClass(false)} title="Save Version" aria-label="Save version"><Save size={16} /></button>
+          <button onClick={onShowHistory} className={tbClass(false)} title="History" aria-label="History"><History size={16} /></button>
+          <button onClick={onShowComments} className={tbClass(showComments)} title="Comments" aria-label="Comments"><MessageSquare size={16} /></button>
+
+          <div className="toolbar-divider"></div>
+
+          <button onClick={onExportPDF} className={tbClass(false)} title="Export PDF"><Download size={16} /> <span className="toolbar-btn-label">PDF</span></button>
+          <button onClick={onExportTXT} className={tbClass(false)} title="Export TXT"><Download size={16} /> <span className="toolbar-btn-label">TXT</span></button>
+        </div>
       </div>
 
       {showImageModal && (

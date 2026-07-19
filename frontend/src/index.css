@@ -70,6 +70,75 @@ body {
   margin-bottom: var(--space-6);
 }
 
+/* Editor Toolbar */
+.editor-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  /* wide enough for every control on one row at desktop widths;
+     below that the action group wraps to a second row instead of scrolling */
+  gap: var(--space-1) var(--space-4);
+  width: 100%;
+  max-width: 880px;
+  margin: 0 auto;
+}
+
+.toolbar-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.toolbar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--text-secondary);
+  border: none;
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.toolbar-btn:hover {
+  background: var(--bg-surface-hover);
+  color: var(--text-primary);
+}
+
+.toolbar-btn:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: -2px;
+}
+
+.toolbar-btn.active {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--accent-primary);
+}
+
+.toolbar-btn-label {
+  font-size: 12px;
+  font-weight: 500;
+  margin-left: 4px;
+}
+
+.toolbar-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--border-subtle);
+  margin: 0 var(--space-1);
+  flex-shrink: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toolbar-btn {
+    transition: none;
+  }
+}
+
 /* Collaboration Cursors */
 .collaboration-cursor__caret {
   position: relative;
@@ -132,19 +201,6 @@ body {
     right: var(--space-4);
     top: 50%;
     transform: translateY(-50%);
-  }
-
-  /* Editor Toolbar Horizontal Scroll */
-  .editor-toolbar-container {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none; /* Firefox */
-  }
-  .editor-toolbar-container::-webkit-scrollbar {
-    display: none; /* Safari and Chrome */
-  }
-  .editor-toolbar {
-    min-width: max-content;
   }
 }
 
