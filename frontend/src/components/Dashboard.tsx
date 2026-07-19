@@ -200,8 +200,8 @@ export const Dashboard = () => {
                 </div>
                 
                 <div className="date-column" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-                  <Clock size={14} /> 
-                  {new Date(doc.updatedAt).toLocaleDateString()}
+                  <Clock size={14} />
+                  {Number.isNaN(Date.parse(doc.updatedAt)) ? '—' : new Date(doc.updatedAt).toLocaleDateString()}
                 </div>
                 
                 <div className="action-column" style={{ textAlign: 'right' }}>

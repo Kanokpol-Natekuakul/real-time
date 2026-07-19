@@ -15,8 +15,16 @@ import { setupYjsPersistence } from './yjsPersistence';
 dotenv.config();
 
 export const app = express();
+// Render terminates TLS at its proxy; trust it so req.ip is the real client IP
+// (otherwise every user shares one rate-limit bucket keyed on the proxy IP)
+app.set('trust proxy', 1);
 app.use(cors());
 app.use(express.json());
+
+// A single failed Firestore write must not take down every websocket connection
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled promise rejection:', reason);
+});
 
 // Rate Limiting
 const globalLimiter = rateLimit({
@@ -96,25 +104,30 @@ app.get('/api/documents', requireAuth, async (req: AuthRequest, res) => {
     }
       
     const docs = snapshot.docs.map((doc: any) => {
-      const docData = doc.data();
+      // content (full Yjs state) and versions (every HTML snapshot) are far too
+      // heavy for a list response — keep them out of the payload
+      const { content, versions, updatedAt, ...docData } = doc.data();
       let contentPreview = '';
-      if (docData.content) {
+      if (content) {
+        const ydoc = new Y.Doc();
         try {
-          const ydoc = new Y.Doc();
-          Y.applyUpdate(ydoc, Buffer.from(docData.content, 'base64'));
+          Y.applyUpdate(ydoc, Buffer.from(content, 'base64'));
           const xml = ydoc.getXmlFragment('default');
           const html = xml.toString();
           contentPreview = html.replace(/<[^>]*>?/gm, '').substring(0, 200);
         } catch (e) {
           contentPreview = '';
+        } finally {
+          ydoc.destroy();
         }
       }
       return {
         _id: doc.id,
         ...docData,
+        updatedAt: updatedAt?.toDate ? updatedAt.toDate().toISOString() : updatedAt ?? null,
         contentPreview
       };
-    }).sort((a: any, b: any) => (b.updatedAt?.toMillis() || 0) - (a.updatedAt?.toMillis() || 0));
+    }).sort((a: any, b: any) => (Date.parse(b.updatedAt) || 0) - (Date.parse(a.updatedAt) || 0));
     
     res.json(docs);
   } catch (error) {

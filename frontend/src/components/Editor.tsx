@@ -321,8 +321,12 @@ export const Editor = () => {
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        // @ts-ignore
-        history: false,
+        // Collaboration provides its own undo manager; the v2 name was
+        // `history`, which v3 silently ignores
+        undoRedo: false,
+        // configured separately below with custom options
+        link: false,
+        underline: false,
       }),
       Collaboration.configure({ document: ydoc }),
       Image,
