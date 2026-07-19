@@ -45,7 +45,10 @@ setupYjsPersistence();
 const server = http.createServer(app);
 
 // Keep Socket.io for presence/other features if needed
-export const io = new Server(server, { cors: { origin: '*' } });
+export const io = new Server(server, { 
+  cors: { origin: '*' },
+  destroyUpgrade: false 
+});
 
 io.on('connection', (socket) => {
   socket.on('join-document', ({ documentId }) => {
@@ -58,9 +61,22 @@ io.on('connection', (socket) => {
 });
 
 // Add standard WebSocket server for y-websocket on the same server
-const wss = new WebSocketServer({ server });
+const wss = new WebSocketServer({ noServer: true });
 wss.on('connection', (conn, req) => {
   setupWSConnection(conn, req);
+});
+
+// Route upgrade requests between Socket.IO and Yjs
+server.on('upgrade', (request, socket, head) => {
+  const pathname = request.url;
+  // Socket.IO handles its own upgrades natively because it's attached to 'server'
+  if (pathname && pathname.startsWith('/socket.io')) {
+    return;
+  }
+  // Let y-websocket handle other paths (e.g. document IDs)
+  wss.handleUpgrade(request, socket, head, (ws) => {
+    wss.emit('connection', ws, request);
+  });
 });
 
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
