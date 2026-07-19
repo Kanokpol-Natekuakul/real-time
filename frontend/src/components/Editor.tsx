@@ -91,7 +91,7 @@ const MenuBar = ({ editor, onSaveVersion, onShowHistory, onExportPDF, onExportTX
             setUploading(false);
           }
         );
-      } catch (e) {
+      } catch {
         toast.error('Upload failed');
         setUploading(false);
       }
@@ -207,7 +207,7 @@ export const Editor = () => {
           const data = await res.json();
           setTitle(data.title);
         }
-      } catch (e) {}
+      } catch {}
     };
     
     const fetchVersions = async () => {
@@ -321,6 +321,7 @@ export const Editor = () => {
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
+        // @ts-ignore
         history: false,
       }),
       Collaboration.configure({ document: ydoc }),
